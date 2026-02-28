@@ -296,5 +296,6 @@ export default App;
  * 1. Make it expand forever
  * 2. Improve UX?
  * 3. Verify memoised cells
- * 4. Optimise build script so docs/index.html can build correctly
+ * [!!!] 4. Optimise build script so docs/index.html can build correctly
+ * [!!!] 5. Win condition didn't work
  */
