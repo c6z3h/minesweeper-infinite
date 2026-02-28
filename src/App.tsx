@@ -98,9 +98,9 @@ const generateInitialCell = (r: number, c: number) => {
     }
   }
 
-  const display = griddy
-    .map((row) => row.map((col) => col.value).join(""))
-    .join("\n");
+  // const display = griddy
+  //   .map((row) => row.map((col) => col.value).join(""))
+  //   .join("\n");
   // console.log("[bomb without the numbers]");
   // console.log(display);
 
@@ -121,9 +121,9 @@ const generateInitialCell = (r: number, c: number) => {
             }
           }
         }
-        const display = griddy
-          .map((row) => row.map((col) => col.value).join(""))
-          .join("\n");
+        // const display = griddy
+        //   .map((row) => row.map((col) => col.value).join(""))
+        //   .join("\n");
         // console.log("[bomb with the numbers]\n", display);
       }
     }
