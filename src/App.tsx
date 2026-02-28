@@ -47,13 +47,15 @@ import "./App.css";
  * 4.
  */
 
-const INIT_GRID_LENGTH = 10; // Square matrix
+const INIT_GRID_LENGTH = 7; // Square matrix
 const EMPTY_GRID_CELL = 0;
 const BOMB_CELL = "B";
 const BOMB_PERCENT = 0.327;
 
+type IGrid = Array<Array<{ display: boolean; value: string | number }>>;
+
 const generateEmptyMatrix = () => {
-  const grid: Array<Array<{ display: boolean; value: string | number }>> = [];
+  const grid: IGrid = [];
   for (let r = 0; r < INIT_GRID_LENGTH; r++) {
     grid[r] = [];
     for (let c = 0; c < INIT_GRID_LENGTH; c++) {
@@ -63,9 +65,7 @@ const generateEmptyMatrix = () => {
   return grid;
 };
 const generateInitialCell = (r: number, c: number) => {
-  const griddy: Array<Array<{ display: boolean; value: string | number }>> = [
-    [],
-  ];
+  const griddy: IGrid = [[]];
 
   const totalCells = INIT_GRID_LENGTH * INIT_GRID_LENGTH;
   const sortArr = Array(totalCells).fill(EMPTY_GRID_CELL);
@@ -163,7 +163,7 @@ function App() {
     }
     // console.log("woo", closureGrid[r][c].value);
     if (closureGrid[r][c].value === EMPTY_GRID_CELL) {
-      const cellsToUpdate = executeDFS(r, c);
+      const cellsToUpdate = executeDFS(r, c, closureGrid);
       // console.log("cellsToUpdate", cellsToUpdate);
       setUnopenedCells((prev) => prev - cellsToUpdate.length);
       setGrid((prev) => {
@@ -202,32 +202,57 @@ function App() {
   const executeDFS = (
     r: number,
     c: number,
+    closureGrid: IGrid,
     cellsToUpdate: Array<{ row: number; col: number }> = [],
     visited: Set<string> = new Set(), // string in `${r}_${c}` format
   ) => {
-    // console.log("DFS", r, c, cellsToUpdate);
-    // const MIN_R = Math.max(0, r - 1);
-    // const MIN_C = Math.max(0, c - 1);
-    // const MAX_R = Math.min(INIT_GRID_LENGTH - 1, r + 1);
-    // const MAX_C = Math.min(INIT_GRID_LENGTH - 1, c + 1);
-    // console.log("DFS min/max", MIN_R, MIN_C, MAX_R, MAX_C);
+    if (
+      typeof closureGrid[r][c].value === "number" &&
+      closureGrid[r][c].value > EMPTY_GRID_CELL
+    ) {
+      cellsToUpdate.push({ row: r, col: c });
+      visited.add(`${r}_${c}`);
+      return cellsToUpdate;
+    }
+    console.log("--------------------");
+    console.log("DFS", r, c, cellsToUpdate.length);
+    const MIN_R = Math.max(0, r - 1);
+    const MIN_C = Math.max(0, c - 1);
+    const MAX_R = Math.min(INIT_GRID_LENGTH - 1, r + 1);
+    const MAX_C = Math.min(INIT_GRID_LENGTH - 1, c + 1);
+    console.log(
+      "DFS min/max, R:",
+      `[${MIN_R}, ${MIN_C}]`,
+      `[${MAX_R}, ${MAX_C}]`,
+    );
 
-    const validCells = [[r, c]];
-    if (r - 1 >= 0) validCells.push([r - 1, c]);
-    if (r + 1 < INIT_GRID_LENGTH) validCells.push([r + 1, c]);
-    if (c - 1 >= 0) validCells.push([r, c - 1]);
-    if (c + 1 < INIT_GRID_LENGTH) validCells.push([r, c + 1]);
+    // const validCells = [[r, c]];
+    // if (r - 1 >= 0) validCells.push([r - 1, c]);
+    // if (r + 1 < INIT_GRID_LENGTH) validCells.push([r + 1, c]);
+    // if (c - 1 >= 0) validCells.push([r, c - 1]);
+    // if (c + 1 < INIT_GRID_LENGTH) validCells.push([r, c + 1]);
 
-    for (const cell of validCells) {
-      const [R, C] = cell;
-      if (grid[R][C].value === BOMB_CELL || visited.has(`${R}_${C}`)) {
-        continue;
-      }
-      cellsToUpdate.push({ row: R, col: C });
-      visited.add(`${R}_${C}`);
-      // console.log("DFS inner", cellsToUpdate);
-      if ((grid[R][C].value as number) === EMPTY_GRID_CELL) {
-        cellsToUpdate = executeDFS(R, C, cellsToUpdate, visited);
+    // for (const cell of validCells) {
+    for (let R = MIN_R; R <= MAX_R; R++) {
+      for (let C = MIN_C; C <= MAX_C; C++) {
+        console.log("DFS inner", visited.size, R, C);
+        // const [R, C] = cell;
+        if (closureGrid[R][C].value === BOMB_CELL || visited.has(`${R}_${C}`)) {
+          continue;
+        }
+        cellsToUpdate.push({ row: R, col: C });
+        visited.add(`${R}_${C}`);
+        // console.log("DFS inner", visited.size, R, C);
+        if ((closureGrid[R][C].value as number) === EMPTY_GRID_CELL) {
+          console.log(
+            "DFS inner go more DFS",
+            visited.size,
+            R,
+            C,
+            closureGrid[R][C].value,
+          );
+          cellsToUpdate = executeDFS(R, C, closureGrid, cellsToUpdate, visited);
+        }
       }
     }
     return cellsToUpdate;
