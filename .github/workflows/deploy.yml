@@ -21,6 +21,9 @@ jobs:
           npm install
           npm run build
 
+      - name: List files (Debug)
+        run: ls -R # This will print every file and folder in the logs
+
       - name: Upload Artifacts
         uses: actions/upload-pages-artifact@v3
         with:
