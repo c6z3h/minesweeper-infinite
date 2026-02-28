@@ -290,3 +290,11 @@ function App() {
 }
 
 export default App;
+
+/**
+ * TODO list:
+ * 1. Make it expand forever
+ * 2. Improve UX?
+ * 3. Verify memoised cells
+ * 4. Optimise build script so docs/index.html can build correctly
+ */
