@@ -98,12 +98,6 @@ const generateInitialCell = (r: number, c: number) => {
     }
   }
 
-  // const display = griddy
-  //   .map((row) => row.map((col) => col.value).join(""))
-  //   .join("\n");
-  // console.log("[bomb without the numbers]");
-  // console.log(display);
-
   for (let r = 0; r < INIT_GRID_LENGTH; r++) {
     for (let c = 0; c < INIT_GRID_LENGTH; c++) {
       const MIN_R = Math.max(0, r - 1);
@@ -121,10 +115,6 @@ const generateInitialCell = (r: number, c: number) => {
             }
           }
         }
-        // const display = griddy
-        //   .map((row) => row.map((col) => col.value).join(""))
-        //   .join("\n");
-        // console.log("[bomb with the numbers]\n", display);
       }
     }
   }
@@ -138,7 +128,7 @@ function App() {
   const [disabled, setDisabled] = useState(false);
   const [grid, setGrid] = useState(generateEmptyMatrix);
   const [unopenedCells, setUnopenedCells] = useState(-1);
-
+  // console.log("unopenedCells", unopenedCells);
   const handleLeftClick = (r: number, c: number) => {
     let closureGrid = firstClicked.current ? grid : [];
     if (!firstClicked.current) {
@@ -155,6 +145,7 @@ function App() {
       //
       setGrid(grid);
       setUnopenedCells(safeCells);
+      // console.log("safeCells", safeCells);
     }
     if (closureGrid[r][c].value === BOMB_CELL) {
       alert("You lose!");
@@ -208,49 +199,47 @@ function App() {
   ) => {
     if (
       typeof closureGrid[r][c].value === "number" &&
-      closureGrid[r][c].value > EMPTY_GRID_CELL
+      closureGrid[r][c].value > EMPTY_GRID_CELL &&
+      !closureGrid[r][c].display
     ) {
       cellsToUpdate.push({ row: r, col: c });
       visited.add(`${r}_${c}`);
       return cellsToUpdate;
     }
-    console.log("--------------------");
-    console.log("DFS", r, c, cellsToUpdate.length);
+    // console.log("--------------------");
+    // console.log("DFS", r, c, cellsToUpdate.length);
     const MIN_R = Math.max(0, r - 1);
     const MIN_C = Math.max(0, c - 1);
     const MAX_R = Math.min(INIT_GRID_LENGTH - 1, r + 1);
     const MAX_C = Math.min(INIT_GRID_LENGTH - 1, c + 1);
-    console.log(
-      "DFS min/max, R:",
-      `[${MIN_R}, ${MIN_C}]`,
-      `[${MAX_R}, ${MAX_C}]`,
-    );
+    // console.log(
+    //   "DFS min/max, R:",
+    //   `[${MIN_R}, ${MIN_C}]`,
+    //   `[${MAX_R}, ${MAX_C}]`,
+    // );
 
-    // const validCells = [[r, c]];
-    // if (r - 1 >= 0) validCells.push([r - 1, c]);
-    // if (r + 1 < INIT_GRID_LENGTH) validCells.push([r + 1, c]);
-    // if (c - 1 >= 0) validCells.push([r, c - 1]);
-    // if (c + 1 < INIT_GRID_LENGTH) validCells.push([r, c + 1]);
-
-    // for (const cell of validCells) {
     for (let R = MIN_R; R <= MAX_R; R++) {
       for (let C = MIN_C; C <= MAX_C; C++) {
-        console.log("DFS inner", visited.size, R, C);
+        // console.log("DFS inner", visited.size, R, C);
         // const [R, C] = cell;
-        if (closureGrid[R][C].value === BOMB_CELL || visited.has(`${R}_${C}`)) {
+        if (
+          closureGrid[R][C].value === BOMB_CELL ||
+          visited.has(`${R}_${C}`) ||
+          closureGrid[R][C].display
+        ) {
           continue;
         }
         cellsToUpdate.push({ row: R, col: C });
         visited.add(`${R}_${C}`);
         // console.log("DFS inner", visited.size, R, C);
         if ((closureGrid[R][C].value as number) === EMPTY_GRID_CELL) {
-          console.log(
-            "DFS inner go more DFS",
-            visited.size,
-            R,
-            C,
-            closureGrid[R][C].value,
-          );
+          // console.log(
+          //   "DFS inner go more DFS",
+          //   visited.size,
+          //   R,
+          //   C,
+          //   closureGrid[R][C].value,
+          // );
           cellsToUpdate = executeDFS(R, C, closureGrid, cellsToUpdate, visited);
         }
       }
@@ -296,6 +285,5 @@ export default App;
  * 1. Make it expand forever
  * 2. Improve UX?
  * 3. Verify memoised cells
- * [!!!] 4. Optimise build script so docs/index.html can build correctly
  * [!!!] 5. Win condition didn't work
  */
