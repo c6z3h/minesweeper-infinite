@@ -21,8 +21,13 @@ jobs:
           npm install
           npm run build
 
-      - name: List files (Debug)
-        run: ls -R # This will print every file and folder in the logs
+      - name: Debug dist/index.html
+        run: |
+          echo "Checking if dist/index.html exists..."
+          ls -R dist/                # Lists all files in dist/ to confirm structure
+          echo "--- File Content Start ---"
+          cat dist/index.html        # Prints the actual HTML content to the logs
+          echo "--- File Content End ---"
 
       - name: Upload Artifacts
         uses: actions/upload-pages-artifact@v3
