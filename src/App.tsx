@@ -50,7 +50,7 @@ import "./App.css";
 const INIT_GRID_LENGTH = 7; // Square matrix
 const EMPTY_GRID_CELL = 0;
 const BOMB_CELL = "B";
-const BOMB_PERCENT = 0.327;
+const BOMB_PERCENT = 0.201;
 
 type IGrid = Array<Array<{ display: boolean; value: string | number }>>;
 
