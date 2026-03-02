@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import "./App.css";
 
 /**
@@ -52,14 +52,16 @@ const EMPTY_GRID_CELL = 0;
 const BOMB_CELL = "B";
 const BOMB_PERCENT = 0.201;
 
-type IGrid = Array<Array<{ display: boolean; value: string | number }>>;
+type IGrid = Array<
+  Array<{ display: boolean; value: string | number; flagged: boolean }>
+>;
 
 const generateEmptyMatrix = () => {
   const grid: IGrid = [];
   for (let r = 0; r < INIT_GRID_LENGTH; r++) {
     grid[r] = [];
     for (let c = 0; c < INIT_GRID_LENGTH; c++) {
-      grid[r].push({ display: false, value: EMPTY_GRID_CELL });
+      grid[r].push({ display: false, value: EMPTY_GRID_CELL, flagged: false });
     }
   }
   return grid;
@@ -94,6 +96,7 @@ const generateInitialCell = (r: number, c: number) => {
       griddy[r].push({
         display: false,
         value: sortArr[INIT_GRID_LENGTH * r + c],
+        flagged: false,
       });
     }
   }
@@ -122,69 +125,134 @@ const generateInitialCell = (r: number, c: number) => {
   let safeCells = totalCells - Math.floor(BOMB_PERCENT * totalCells);
   return { grid: griddy, safeCells };
 };
+let count = 0;
+const Cell: React.FC<any> = React.memo(
+  ({
+    row,
+    col,
+    disabled,
+    display,
+    value,
+    flagged,
+    handleLeftClick,
+    handleRightClick,
+  }: any) => {
+    console.log("cell re-renders", row, col, count++);
+    return (
+      <button
+        style={{
+          width: 40,
+          height: 40,
+          textAlign: "center",
+          borderWidth: 1,
+          borderColor: "black",
+        }}
+        onClick={() => handleLeftClick(row, col, display)}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          console.log("row", row, "col", col);
+          handleRightClick(row, col, display, flagged);
+        }}
+        disabled={disabled}
+      >
+        <span>{flagged ? "\u2691" : display ? value : "\u00A0"}</span>
+      </button>
+    );
+  },
+);
 
 function App() {
   const firstClicked = useRef(false);
   const [disabled, setDisabled] = useState(false);
   const [grid, setGrid] = useState(generateEmptyMatrix);
   const [unopenedCells, setUnopenedCells] = useState(-1);
-  // console.log("unopenedCells", unopenedCells);
-  const handleLeftClick = (r: number, c: number) => {
-    let closureGrid = firstClicked.current ? grid : [];
-    if (!firstClicked.current) {
-      firstClicked.current = true;
-      const { grid, safeCells } = generateInitialCell(r, c);
-      closureGrid = grid;
-      /**
-       * Console log the grid to validate.
-       */
-      // const display = grid
-      //   .map((row) => row.map((col) => col.value).join(""))
-      //   .join("\n");
-      // console.log(display);
-      //
-      setGrid(grid);
-      setUnopenedCells(safeCells);
-      // console.log("safeCells", safeCells);
-    }
-    if (closureGrid[r][c].value === BOMB_CELL) {
-      alert("You lose!");
+  const gridRef = useRef<IGrid>([]);
+  gridRef.current = grid;
+
+  const handleLeftClick = useCallback(
+    (r: number, c: number, display: boolean) => {
+      if (display) return;
+      let closureGrid = gridRef.current;
+
+      if (!firstClicked.current) {
+        firstClicked.current = true;
+        const { grid, safeCells } = generateInitialCell(r, c);
+        closureGrid = grid;
+        setGrid(grid);
+        setUnopenedCells(safeCells);
+      }
+      if (closureGrid[r][c].value === BOMB_CELL) {
+        alert("You lose!");
+        setDisabled(true);
+        return;
+      }
+      if (closureGrid[r][c].value === EMPTY_GRID_CELL) {
+        const cellsToUpdate = executeDFS(r, c, closureGrid);
+        console.log("cellsToUpdate", cellsToUpdate.length);
+        setUnopenedCells((prev) => prev - cellsToUpdate.length);
+        setGrid((prev) => {
+          const newGrid = [...prev];
+          for (const cells of cellsToUpdate) {
+            const { row, col } = cells;
+            console.log(row, col);
+            newGrid[row][col] = {
+              ...prev[row][col],
+              display: true,
+              flagged: false,
+            };
+          }
+          return newGrid;
+        });
+        return;
+      }
+
+      setGrid((prev) => {
+        const newGrid = [...prev];
+        newGrid[r] = [...prev[r]];
+        newGrid[r][c] = {
+          ...prev[r][c],
+          display: true,
+          flagged: false,
+        };
+        return newGrid;
+      });
+      setUnopenedCells((prev) => prev - 1);
+    },
+    [disabled],
+  );
+
+  const handleRightClick = useCallback(
+    (r: number, c: number, display: boolean, flagged: boolean) => {
+      if (display || !firstClicked.current) {
+        if (flagged) {
+          setGrid((prev) => {
+            const newGrid = [...prev];
+            newGrid[r] = [...prev[r]];
+            newGrid[r][c] = { ...prev[r][c], flagged: false };
+            return newGrid;
+          });
+        }
+        return;
+      }
+      setGrid((prev) => {
+        const newGrid = [...prev];
+        newGrid[r] = [...prev[r]];
+        newGrid[r][c] = { ...prev[r][c], flagged: true };
+        return newGrid;
+      });
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (unopenedCells === 0) {
+      alert("You win!");
+      setUnopenedCells(-1);
       setDisabled(true);
       return;
     }
-    // console.log("woo", closureGrid[r][c].value);
-    if (closureGrid[r][c].value === EMPTY_GRID_CELL) {
-      const cellsToUpdate = executeDFS(r, c, closureGrid);
-      // console.log("cellsToUpdate", cellsToUpdate);
-      setUnopenedCells((prev) => prev - cellsToUpdate.length);
-      setGrid((prev) => {
-        const newGrid = [...prev];
-        for (const cells of cellsToUpdate) {
-          const row = cells.row;
-          const col = cells.col;
-          newGrid[row][col].display = true;
-        }
-        return newGrid;
-      });
-      return;
-    }
-
-    setGrid((prev) => {
-      const newGrid = [...prev];
-      newGrid[r][c].display = true;
-      return newGrid;
-    });
-    setUnopenedCells((prev) => prev - 1);
-  };
-
-  if (unopenedCells === 0) {
-    alert("You win!");
-    setUnopenedCells(-1);
-    setDisabled(true);
-    return;
-  }
+  }, [grid]);
   const handleRestart = () => {
-    // console.log("restarted");
     firstClicked.current = false;
     setGrid(generateEmptyMatrix);
     setDisabled(false);
@@ -206,22 +274,13 @@ function App() {
       visited.add(`${r}_${c}`);
       return cellsToUpdate;
     }
-    // console.log("--------------------");
-    // console.log("DFS", r, c, cellsToUpdate.length);
     const MIN_R = Math.max(0, r - 1);
     const MIN_C = Math.max(0, c - 1);
     const MAX_R = Math.min(INIT_GRID_LENGTH - 1, r + 1);
     const MAX_C = Math.min(INIT_GRID_LENGTH - 1, c + 1);
-    // console.log(
-    //   "DFS min/max, R:",
-    //   `[${MIN_R}, ${MIN_C}]`,
-    //   `[${MAX_R}, ${MAX_C}]`,
-    // );
 
     for (let R = MIN_R; R <= MAX_R; R++) {
       for (let C = MIN_C; C <= MAX_C; C++) {
-        // console.log("DFS inner", visited.size, R, C);
-        // const [R, C] = cell;
         if (
           closureGrid[R][C].value === BOMB_CELL ||
           visited.has(`${R}_${C}`) ||
@@ -231,15 +290,7 @@ function App() {
         }
         cellsToUpdate.push({ row: R, col: C });
         visited.add(`${R}_${C}`);
-        // console.log("DFS inner", visited.size, R, C);
         if ((closureGrid[R][C].value as number) === EMPTY_GRID_CELL) {
-          // console.log(
-          //   "DFS inner go more DFS",
-          //   visited.size,
-          //   R,
-          //   C,
-          //   closureGrid[R][C].value,
-          // );
           cellsToUpdate = executeDFS(R, C, closureGrid, cellsToUpdate, visited);
         }
       }
@@ -255,21 +306,19 @@ function App() {
       </button>
       {grid.map((row, r) => (
         <div>
-          {row.map(({ display, value }, c) => {
-            // TODO memo
+          {row.map(({ display, value, flagged }, c) => {
             return (
-              <button
-                key={`${r}_${c}_${display}`}
-                style={{
-                  width: 40,
-                  height: 40,
-                  textAlign: "center",
-                }}
-                onClick={() => handleLeftClick(r, c)} // TODO handle right click
+              <Cell
+                key={`${r}_${c}`}
+                row={r}
+                col={c}
                 disabled={disabled}
-              >
-                <span>{display ? value : "\u00A0"}</span>
-              </button>
+                display={display}
+                value={value}
+                flagged={flagged}
+                handleLeftClick={handleLeftClick}
+                handleRightClick={handleRightClick}
+              />
             );
           })}
         </div>
@@ -282,8 +331,6 @@ export default App;
 
 /**
  * TODO list:
- * 1. Make it expand forever
- * 2. Improve UX?
- * 3. Verify memoised cells
- * [!!!] 5. Win condition didn't work
+ *  [Version 2 - later date]
+ *    1. Make it expand forever
  */
